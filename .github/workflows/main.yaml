@@ -42,13 +42,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trivy scan
+      - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: 1
+          format: table
+          output: trivy-fs-report.txt
+
+      - name: Upload Trivy filesystem report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-filesystem-report
+          path: trivy-fs-report.txt
 
       - name: OWASP dependency check
         uses: dependency-check/Dependency-Check_Action@main
@@ -56,11 +65,20 @@ jobs:
           project: nexus-mlops
           path: .
           format: HTML
+          out: owasp-report
+
+      - name: Upload OWASP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: owasp-dependency-report
+          path: owasp-report
 
   build-push:
     name: Build and Push to ECR
     runs-on: ubuntu-latest
     needs: security-scan
+    if: false
     permissions:
       id-token: write
       contents: read
@@ -90,6 +108,13 @@ jobs:
           image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           severity: CRITICAL
           exit-code: 1
+
+      - name: Upload Trivy image report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.txt
 
       - name: Push to ECR
         run: |
