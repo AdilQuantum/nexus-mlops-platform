@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: inference-service
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: inference-service
+  template:
+    metadata:
+      labels:
+        app: inference-service
+    spec:
+      containers:
+        - name: inference
+          image: inference-service:latest
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+  strategy:
+    canary:
+      steps:
+        - setWeight: 10
+        - pause: {duration: 5m}
+        - setWeight: 50
+        - pause: {duration: 5m}
+        - setWeight: 100
+      analysis:
+        templates:
+          - templateName: inference-success-rate
+        startingStep: 1
+        args:
+          - name: service-name
+            value: inference-service
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: inference-success-rate
+  namespace: default
+spec:
+  metrics:
+    - name: success-rate
+      interval: 1m
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            sum(rate(ml_model_requests_total{status="success"}[2m]))
+            /
+            sum(rate(ml_model_requests_total[2m]))
+    - name: latency-p99
+      interval: 1m
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus:9090
+          query: |
+            histogram_quantile(0.99,
+              ml_prediction_latency_seconds_bucket)
