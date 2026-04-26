@@ -1,0 +1,21 @@
+- rule: Shell in Container
+  desc: Detect shell spawned in container
+  condition: >
+    spawned_process and container
+    and shell_procs
+    and not trusted_containers
+  output: >
+    Shell spawned in container
+    (user=%user.name container=%container.name
+    shell=%proc.name)
+  priority: WARNING
+
+- rule: Sensitive File Read
+  desc: Detect reading of sensitive files
+  condition: >
+    open_read and container
+    and sensitive_files
+  output: >
+    Sensitive file read in container
+    (file=%fd.name container=%container.name)
+  priority: WARNING

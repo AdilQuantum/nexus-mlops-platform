@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-inference-service
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: inference-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 6379
