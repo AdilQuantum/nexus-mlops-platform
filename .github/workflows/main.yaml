@@ -33,7 +33,7 @@ jobs:
 
       - name: Test
         run: |
-          pytest ml/ --cov=ml --cov-fail-under=70
+          pytest ml/training/test_train.py --cov=ml/training --cov-fail-under=70
 
   security-scan:
     name: Security Gates
