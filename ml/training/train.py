@@ -8,8 +8,12 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 import os
 
 # MLflow tracking server
-mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
+mlflow.set_tracking_uri(
+    os.getenv(
+        "MLFLOW_TRACKING_URI",
+        "http://localhost:5000"))
 mlflow.set_experiment("fraud-detection")
+
 
 def generate_sample_data(n_samples=1000):
     np.random.seed(42)
@@ -25,6 +29,7 @@ def generate_sample_data(n_samples=1000):
         (X["distance_from_home"] > 100)
     ).astype(int)
     return X, y
+
 
 def train():
     X, y = generate_sample_data()
@@ -63,8 +68,13 @@ def train():
             registered_model_name="fraud-detection-model"
         )
 
-        print(f"F1: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+        print(
+            f"F1: {
+                f1:.4f} | Precision: {
+                precision:.4f} | Recall: {
+                recall:.4f}")
         print(f"Run ID: {mlflow.active_run().info.run_id}")
+
 
 if __name__ == "__main__":
     train()

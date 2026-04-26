@@ -33,11 +33,13 @@ mlflow.set_tracking_uri(MLFLOW_URI)
 
 model = None
 
+
 def load_model():
     global model
     model = mlflow.sklearn.load_model(
         "models:/fraud-detection-model/Production"
     )
+
 
 class PredictionRequest(BaseModel):
     transaction_amount: float
@@ -46,18 +48,22 @@ class PredictionRequest(BaseModel):
     num_transactions_today: int
     distance_from_home: float
 
+
 class PredictionResponse(BaseModel):
     prediction: int
     confidence: float
     model_version: str
 
+
 @app.on_event("startup")
 async def startup_event():
     load_model()
 
+
 @app.get("/health")
 def health():
     return {"status": "healthy", "model_loaded": model is not None}
+
 
 @app.get("/metrics")
 def metrics():
@@ -65,6 +71,7 @@ def metrics():
         generate_latest(),
         media_type=CONTENT_TYPE_LATEST
     )
+
 
 @app.post("/v1/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest):

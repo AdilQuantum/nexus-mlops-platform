@@ -3,7 +3,7 @@ import numpy as np
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 import boto3
-import json
+
 import os
 import requests
 from datetime import datetime
@@ -11,6 +11,7 @@ from datetime import datetime
 DRIFT_THRESHOLD = float(os.getenv("DRIFT_THRESHOLD", "0.2"))
 S3_BUCKET = os.getenv("S3_BUCKET", "nexus-mlops-model-artifacts-staging")
 AIRFLOW_URL = os.getenv("AIRFLOW_URL", "http://airflow:8080")
+
 
 def load_reference_data():
     np.random.seed(42)
@@ -22,6 +23,7 @@ def load_reference_data():
         "distance_from_home": np.random.exponential(50, 1000)
     })
 
+
 def load_current_data():
     # In production: load from feature store or database
     np.random.seed(99)
@@ -32,6 +34,7 @@ def load_current_data():
         "num_transactions_today": np.random.randint(1, 50, 500),
         "distance_from_home": np.random.exponential(80, 500)
     })
+
 
 def run_drift_detection():
     reference = load_reference_data()
@@ -59,8 +62,10 @@ def run_drift_detection():
 
     # Trigger retraining if drift detected
     if drift_score > DRIFT_THRESHOLD:
-        print(f"Drift score {drift_score} exceeded threshold {DRIFT_THRESHOLD}")
+        print(
+            f"Drift score {drift_score} exceeded threshold {DRIFT_THRESHOLD}")
         trigger_retraining()
+
 
 def trigger_retraining():
     response = requests.post(
@@ -69,6 +74,7 @@ def trigger_retraining():
         auth=("airflow", "airflow")
     )
     print(f"Retraining triggered: {response.status_code}")
+
 
 if __name__ == "__main__":
     run_drift_detection()
