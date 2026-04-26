@@ -1,0 +1,38 @@
+groups:
+  - name: ml-model-alerts
+    rules:
+      - alert: HighPredictionLatency
+        expr: histogram_quantile(0.99, ml_prediction_latency_seconds_bucket) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High prediction latency detected"
+          description: "p99 latency is above 2 seconds"
+
+      - alert: LowPredictionConfidence
+        expr: avg(ml_prediction_confidence_score) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Model confidence dropping"
+          description: "Average confidence below 70% for 10 minutes"
+
+      - alert: HighDriftScore
+        expr: ml_feature_drift_score > 0.2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Feature drift detected"
+          description: "PSI drift score exceeded threshold of 0.2"
+
+      - alert: ModelRequestRateZero
+        expr: rate(ml_model_requests_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Inference service not receiving requests"
+          description: "Zero requests in last 5 minutes"

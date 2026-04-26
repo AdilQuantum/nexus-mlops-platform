@@ -1,0 +1,45 @@
+{
+  "title": "Nexus MLOps - Model Performance",
+  "panels": [
+    {
+      "title": "Prediction Latency p99",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, ml_prediction_latency_seconds_bucket)",
+          "legendFormat": "p99 latency"
+        }
+      ]
+    },
+    {
+      "title": "Prediction Confidence Score",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "avg(ml_prediction_confidence_score)",
+          "legendFormat": "avg confidence"
+        }
+      ]
+    },
+    {
+      "title": "Feature Drift Score",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "ml_feature_drift_score",
+          "legendFormat": "drift score"
+        }
+      ]
+    },
+    {
+      "title": "Request Rate",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "rate(ml_model_requests_total[5m])",
+          "legendFormat": "requests/sec"
+        }
+      ]
+    }
+  ]
+}
