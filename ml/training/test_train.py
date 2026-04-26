@@ -1,6 +1,8 @@
-import numpy as np
-import pandas as pd
+import sys
+import os
 from train import generate_sample_data
+
+sys.path.insert(0, os.path.dirname(__file__))
 
 
 def test_generate_sample_data_shape():
