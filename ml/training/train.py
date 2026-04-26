@@ -7,11 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, precision_score, recall_score
 import os
 
-# MLflow tracking server
-mlflow.set_tracking_uri(
-    os.getenv(
-        "MLFLOW_TRACKING_URI",
-        "http://localhost:5000"))
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000"))
 mlflow.set_experiment("fraud-detection")
 
 
@@ -53,26 +49,18 @@ def train():
         precision = precision_score(y_test, y_pred)
         recall = recall_score(y_test, y_pred)
 
-        # Log parameters
         mlflow.log_params(params)
-
-        # Log metrics
         mlflow.log_metric("f1_score", f1)
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
 
-        # Log model
         mlflow.sklearn.log_model(
             model,
             "model",
             registered_model_name="fraud-detection-model"
         )
 
-        print(
-            f"F1: {
-                f1:.4f} | Precision: {
-                precision:.4f} | Recall: {
-                recall:.4f}")
+        print(f"F1: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
         print(f"Run ID: {mlflow.active_run().info.run_id}")
 
 
