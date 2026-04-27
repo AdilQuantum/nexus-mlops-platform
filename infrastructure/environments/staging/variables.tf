@@ -13,12 +13,6 @@ variable "environment" {
   default = "staging"
 }
 
-variable "nat_ami" {
-  type        = string
-  description = "NAT instance AMI for us-east-1"
-  default     = "ami-0a6b2839d44d781b2"
-}
-
 variable "db_username" {
   type      = string
   sensitive = true

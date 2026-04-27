@@ -18,8 +18,3 @@ variable "availability_zones" {
   description = "List of availability zones"
   type        = list(string)
 }
-
-variable "nat_ami" {
-  description = "AMI ID for NAT instance"
-  type        = string
-}

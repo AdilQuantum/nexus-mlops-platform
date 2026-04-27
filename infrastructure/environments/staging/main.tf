@@ -15,7 +15,6 @@ module "vpc" {
   environment        = var.environment
   vpc_cidr           = "10.0.0.0/16"
   availability_zones = ["ap-south-1a", "ap-south-1b"]
-  nat_ami            = var.nat_ami
 }
 
 module "iam" {
