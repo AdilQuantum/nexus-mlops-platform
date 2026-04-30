@@ -48,9 +48,8 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          severity: CRITICAL,HIGH
+          scanners: secret,misconfig
           exit-code: 1
-          ignore-unfixed: true
           format: table
           output: trivy-fs-report.txt
 
