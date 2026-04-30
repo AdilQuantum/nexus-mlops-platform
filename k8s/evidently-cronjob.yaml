@@ -84,6 +84,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          labels:
+            app: evidently-drift
         spec:
           containers:
             - name: drift-detection
@@ -92,7 +95,7 @@ spec:
                 - /bin/sh
                 - -c
                 - |
-                  pip install evidently mlflow scikit-learn pandas numpy requests -q &&
+                  pip install "evidently==0.4.33" "mlflow==2.11.0" "scikit-learn==1.4.2" "pandas==2.2.2" "numpy==1.26.4" "requests==2.31.0" -q &&
                   python /scripts/detector.py
               env:
                 - name: MLFLOW_TRACKING_URI
