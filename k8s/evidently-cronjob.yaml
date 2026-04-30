@@ -9,15 +9,59 @@ data:
     import numpy as np
     from evidently.report import Report
     from evidently.metric_preset import DataDriftPreset
-    import mlflow
     import os
-    import requests
+    import json
+    import urllib.request
+    import urllib.parse
     from datetime import datetime
 
     DRIFT_THRESHOLD = float(os.getenv("DRIFT_THRESHOLD", "0.2"))
     AIRFLOW_URL = os.getenv("AIRFLOW_URL", "http://airflow-webserver.airflow.svc.cluster.local:8080")
     MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.mlflow.svc.cluster.local:5000")
-    mlflow.set_tracking_uri(MLFLOW_URI)
+
+    def log_to_mlflow(drift_detected, drift_score):
+        """Log drift metrics to MLflow via REST API — no mlflow SDK needed."""
+        try:
+            # Create run
+            payload = json.dumps({
+                "experiment_id": "0",
+                "run_name": "drift-detection",
+                "tags": [{"key": "component", "value": "drift-detection"}]
+            }).encode()
+            req = urllib.request.Request(
+                f"{MLFLOW_URI}/api/2.0/mlflow/runs/create",
+                data=payload, method="POST",
+                headers={"Content-Type": "application/json"}
+            )
+            resp = json.loads(urllib.request.urlopen(req, timeout=10).read())
+            run_id = resp["run"]["info"]["run_id"]
+
+            # Log metrics
+            metrics_payload = json.dumps({
+                "run_id": run_id,
+                "metrics": [
+                    {"key": "drift_detected", "value": int(drift_detected), "timestamp": int(datetime.now().timestamp() * 1000), "step": 0},
+                    {"key": "drift_share", "value": drift_score, "timestamp": int(datetime.now().timestamp() * 1000), "step": 0}
+                ]
+            }).encode()
+            req2 = urllib.request.Request(
+                f"{MLFLOW_URI}/api/2.0/mlflow/runs/log-batch",
+                data=metrics_payload, method="POST",
+                headers={"Content-Type": "application/json"}
+            )
+            urllib.request.urlopen(req2, timeout=10)
+
+            # Terminate run
+            finish_payload = json.dumps({"run_id": run_id, "status": "FINISHED"}).encode()
+            req3 = urllib.request.Request(
+                f"{MLFLOW_URI}/api/2.0/mlflow/runs/update",
+                data=finish_payload, method="POST",
+                headers={"Content-Type": "application/json"}
+            )
+            urllib.request.urlopen(req3, timeout=10)
+            print(f"MLflow run logged: {run_id}")
+        except Exception as e:
+            print(f"MLflow logging skipped: {e}")
 
     def load_reference_data():
         np.random.seed(42)
@@ -52,21 +96,21 @@ data:
 
         print(f"Drift detected: {drift_detected} | Score: {drift_score:.3f}")
 
-        with mlflow.start_run(run_name="drift-detection"):
-            mlflow.log_metric("drift_detected", int(drift_detected))
-            mlflow.log_metric("drift_share", drift_score)
-            mlflow.set_tag("component", "drift-detection")
+        log_to_mlflow(drift_detected, drift_score)
 
         if drift_score > DRIFT_THRESHOLD:
             print(f"Threshold exceeded ({drift_score:.3f} > {DRIFT_THRESHOLD}). Triggering retrain.")
             try:
-                r = requests.post(
+                payload = json.dumps({"conf": {"triggered_by": "drift_detection"}}).encode()
+                import base64
+                creds = base64.b64encode(b"airflow:airflow").decode()
+                req = urllib.request.Request(
                     f"{AIRFLOW_URL}/api/v1/dags/retrain_model/dagRuns",
-                    json={"conf": {"triggered_by": "drift_detection"}},
-                    auth=("airflow", "airflow"),
-                    timeout=10
+                    data=payload, method="POST",
+                    headers={"Content-Type": "application/json", "Authorization": f"Basic {creds}"}
                 )
-                print(f"Airflow trigger: {r.status_code}")
+                resp = urllib.request.urlopen(req, timeout=10)
+                print(f"Airflow trigger: {resp.status}")
             except Exception as e:
                 print(f"Airflow not reachable: {e}")
 
@@ -95,7 +139,7 @@ spec:
                 - /bin/sh
                 - -c
                 - |
-                  pip install "evidently<0.5.0" "mlflow==2.11.0" scikit-learn pandas numpy -q &&
+                  pip install "evidently<0.5.0" scikit-learn pandas numpy -q &&
                   python /scripts/detector.py
               env:
                 - name: MLFLOW_TRACKING_URI
