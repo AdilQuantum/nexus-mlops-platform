@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-model
+  namespace: default
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trainer
+          image: python:3.11-slim
+          command:
+            - /bin/sh
+            - -c
+            - |
+              pip install "scikit-learn==1.4.2" "mlflow==2.11.0" "pandas==2.2.2" "numpy==1.26.4" -q &&
+              python /scripts/train.py
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow.mlflow.svc.cluster.local:5000
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          volumeMounts:
+            - name: train-script
+              mountPath: /scripts
+      volumes:
+        - name: train-script
+          configMap:
+            name: train-script
