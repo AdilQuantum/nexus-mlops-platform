@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import mlflow
-import mlflow.artifacts
+from mlflow.tracking import MlflowClient
 import numpy as np
 import pickle
 import time
@@ -40,10 +40,8 @@ def load_model():
     global model
     if not MLFLOW_RUN_ID:
         raise RuntimeError("MLFLOW_RUN_ID env var is required")
-    local_path = mlflow.artifacts.download_artifacts(
-        run_id=MLFLOW_RUN_ID,
-        artifact_path="model.pkl"
-    )
+    client = MlflowClient(tracking_uri=MLFLOW_URI)
+    local_path = client.download_artifacts(MLFLOW_RUN_ID, "model.pkl", "/tmp")
     with open(local_path, "rb") as f:
         model = pickle.load(f)
 
