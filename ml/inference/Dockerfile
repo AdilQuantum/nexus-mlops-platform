@@ -1,12 +1,15 @@
 FROM python:3.11-slim AS builder
 WORKDIR /build
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.11-slim AS runtime
 WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 RUN groupadd -r appuser && useradd -r -g appuser appuser
-COPY --from=builder /root/.local /home/appuser/.local
 COPY --chown=appuser:appuser app.py .
 USER appuser
 EXPOSE 8000

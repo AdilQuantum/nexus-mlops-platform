@@ -60,12 +60,17 @@ class PredictionResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    load_model()
+    try:
+        load_model()
+    except Exception as e:
+        print(f"WARNING: model failed to load at startup: {e}")
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "model_loaded": model is not None}
+    if model is None:
+        raise HTTPException(status_code=503, detail="model not loaded")
+    return {"status": "healthy", "model_loaded": True}
 
 
 @app.get("/metrics")
