@@ -1,10 +1,10 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: inference-service
   namespace: default
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: inference-service
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inference
-          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:5160d3a9cc6a064e6b42b10ce6d38adc734e0edc
+          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
@@ -47,45 +47,6 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 3
-  strategy:
-    canary:
-      steps:
-        - setWeight: 50
-        - pause: {duration: 60s}
-        - analysis:
-            templates:
-              - templateName: inference-success-rate
-        - setWeight: 100
----
-apiVersion: argoproj.io/v1alpha1
-kind: AnalysisTemplate
-metadata:
-  name: inference-success-rate
-  namespace: default
-spec:
-  metrics:
-    - name: success-rate
-      interval: 30s
-      count: 3
-      successCondition: result[0] >= 0.95
-      failureLimit: 1
-      provider:
-        prometheus:
-          address: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-          query: |
-            sum(rate(ml_model_requests_total{status="success"}[2m]))
-            /
-            (sum(rate(ml_model_requests_total[2m])) > 0)
-    - name: latency-p99
-      interval: 30s
-      count: 3
-      successCondition: result[0] < 1.0
-      failureLimit: 1
-      provider:
-        prometheus:
-          address: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
-          query: |
-            histogram_quantile(0.99, rate(ml_prediction_latency_seconds_bucket[2m]))
 ---
 apiVersion: v1
 kind: Service
