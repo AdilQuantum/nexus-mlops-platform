@@ -23,7 +23,7 @@ spec:
             - name: MLFLOW_TRACKING_URI
               value: http://mlflow.mlflow.svc.cluster.local:5000
             - name: MLFLOW_RUN_ID
-              value: "7553f789ac424d2e955d0626c962d10d"
+              value: "24d5b1c33a4942caab51f9c8ab2467e8"
           resources:
             requests:
               memory: "256Mi"
