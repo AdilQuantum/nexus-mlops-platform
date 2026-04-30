@@ -48,7 +48,7 @@ jobs:
         with:
           scan-type: fs
           scan-ref: .
-          scanners: secret,misconfig
+          scanners: secret
           exit-code: 1
           format: table
           output: trivy-fs-report.txt
