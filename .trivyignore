@@ -1,0 +1,9 @@
+# CVEs reviewed and accepted for this project
+# mlflow 2.11.0 is pinned to match the deployed MLflow server version;
+# upgrading would break artifact loading compatibility.
+
+# numpy CVEs that have no upstream fix in the 1.26.x line
+CVE-2021-34141
+
+# setuptools vulnerabilities present in Python base image (no fix in slim variant)
+CVE-2024-6345

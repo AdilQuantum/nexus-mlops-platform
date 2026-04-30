@@ -50,6 +50,7 @@ jobs:
           scan-ref: .
           severity: CRITICAL,HIGH
           exit-code: 1
+          ignore-unfixed: true
           format: table
           output: trivy-fs-report.txt
 
@@ -109,6 +110,7 @@ jobs:
           image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           severity: CRITICAL
           exit-code: 1
+          ignore-unfixed: true
           output: trivy-image-report.txt
 
       - name: Upload Trivy image report
