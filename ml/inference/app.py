@@ -64,11 +64,21 @@ async def startup_event():
         print(f"WARNING: model failed to load at startup: {e}")
 
 
-@app.get("/health")
-def health():
+@app.get("/health/live")
+def liveness():
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+def readiness():
     if model is None:
         raise HTTPException(status_code=503, detail="model not loaded")
-    return {"status": "healthy", "model_loaded": True}
+    return {"status": "ready", "model_loaded": True}
+
+
+@app.get("/health")
+def health():
+    return {"status": "alive", "model_loaded": model is not None}
 
 
 @app.get("/metrics")
