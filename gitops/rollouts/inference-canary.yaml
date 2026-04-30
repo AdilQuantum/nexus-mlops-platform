@@ -4,7 +4,7 @@ metadata:
   name: inference-service
   namespace: default
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: inference-service
@@ -15,9 +15,17 @@ spec:
     spec:
       containers:
         - name: inference
-          image: inference-service:latest
+          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:latest
+          imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8000
+          command: ["uvicorn"]
+          args: ["app:app", "--host", "0.0.0.0", "--port", "8000"]
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow.mlflow.svc.cluster.local:5000
+            - name: MLFLOW_RUN_ID
+              value: "5a2fec6ad0f84939b3cc1a630d0aec3a"
           resources:
             requests:
               memory: "256Mi"
@@ -25,57 +33,26 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health
-              port: 8080
+              port: 8000
             initialDelaySeconds: 20
-            periodSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 3
   strategy:
     canary:
       steps:
-        - setWeight: 10
-        - pause: {duration: 5m}
         - setWeight: 50
-        - pause: {duration: 5m}
+        - pause: {duration: 60s}
+        - analysis:
+            templates:
+              - templateName: inference-success-rate
         - setWeight: 100
-      analysis:
-        templates:
-          - templateName: inference-success-rate
-        startingStep: 1
-        args:
-          - name: service-name
-            value: inference-service
----
-apiVersion: argoproj.io/v1alpha1
-kind: AnalysisTemplate
-metadata:
-  name: inference-success-rate
-  namespace: default
-spec:
-  metrics:
-    - name: success-rate
-      interval: 1m
-      failureLimit: 3
-      provider:
-        prometheus:
-          address: http://prometheus:9090
-          query: |
-            sum(rate(ml_model_requests_total{status="success"}[2m]))
-            /
-            sum(rate(ml_model_requests_total[2m]))
-    - name: latency-p99
-      interval: 1m
-      failureLimit: 3
-      provider:
-        prometheus:
-          address: http://prometheus:9090
-          query: |
-            histogram_quantile(0.99,
-              ml_prediction_latency_seconds_bucket)

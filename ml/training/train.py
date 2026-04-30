@@ -1,7 +1,7 @@
 import mlflow
-import mlflow.sklearn
 import pandas as pd
 import numpy as np
+import pickle
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, precision_score, recall_score
@@ -54,14 +54,15 @@ def train():
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
 
-        mlflow.sklearn.log_model(
-            model,
-            "model",
-            registered_model_name="fraud-detection-model"
-        )
+        # pickle artifact avoids client/server mlflow version mismatch
+        with open("/tmp/model.pkl", "wb") as f:
+            pickle.dump(model, f)
+        mlflow.log_artifact("/tmp/model.pkl", artifact_path="")
 
+        run_id = mlflow.active_run().info.run_id
         print(f"F1: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
-        print(f"Run ID: {mlflow.active_run().info.run_id}")
+        print(f"Run ID: {run_id}")
+        return run_id
 
 
 if __name__ == "__main__":

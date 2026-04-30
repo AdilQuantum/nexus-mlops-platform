@@ -1,0 +1,49 @@
+executor: LocalExecutor
+
+webserver:
+  replicas: 1
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+scheduler:
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+postgresql:
+  enabled: true
+  primary:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+
+redis:
+  enabled: false
+
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/AdilQuantum/nexus-mlops-platform
+    branch: main
+    subPath: ml/dags
+    wait: 60
+
+env:
+  - name: MLFLOW_TRACKING_URI
+    value: "http://mlflow.mlflow.svc.cluster.local:5000"
+  - name: DRIFT_THRESHOLD
+    value: "0.2"
+
+config:
+  core:
+    load_examples: "False"

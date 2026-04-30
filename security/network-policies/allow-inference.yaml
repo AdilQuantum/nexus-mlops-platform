@@ -13,10 +13,14 @@ spec:
   ingress:
     - ports:
         - protocol: TCP
-          port: 8080
+          port: 8000
   egress:
     - ports:
         - protocol: TCP
-          port: 5432
+          port: 5000
         - protocol: TCP
-          port: 6379
+          port: 443
+        - protocol: TCP
+          port: 5432
+        - protocol: UDP
+          port: 53

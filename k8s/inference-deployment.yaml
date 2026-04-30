@@ -1,10 +1,10 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: inference-service
   namespace: default
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: inference-service
@@ -26,6 +26,66 @@ spec:
               value: http://mlflow.mlflow.svc.cluster.local:5000
             - name: MLFLOW_RUN_ID
               value: "5a2fec6ad0f84939b3cc1a630d0aec3a"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            failureThreshold: 3
+  strategy:
+    canary:
+      steps:
+        - setWeight: 50
+        - pause: {duration: 60s}
+        - analysis:
+            templates:
+              - templateName: inference-success-rate
+        - setWeight: 100
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: inference-success-rate
+  namespace: default
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 3
+      successCondition: result[0] >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(ml_model_requests_total{status="success"}[2m]))
+            /
+            (sum(rate(ml_model_requests_total[2m])) > 0)
+    - name: latency-p99
+      interval: 30s
+      count: 3
+      successCondition: result[0] < 1.0
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(0.99, rate(ml_prediction_latency_seconds_bucket[2m]))
 ---
 apiVersion: v1
 kind: Service

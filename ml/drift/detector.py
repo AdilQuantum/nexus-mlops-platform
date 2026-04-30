@@ -3,14 +3,16 @@ import numpy as np
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 import boto3
-
+import mlflow
 import os
 import requests
 from datetime import datetime
 
 DRIFT_THRESHOLD = float(os.getenv("DRIFT_THRESHOLD", "0.2"))
 S3_BUCKET = os.getenv("S3_BUCKET", "nexus-mlops-model-artifacts-staging")
-AIRFLOW_URL = os.getenv("AIRFLOW_URL", "http://airflow:8080")
+AIRFLOW_URL = os.getenv("AIRFLOW_URL", "http://airflow-webserver.airflow.svc.cluster.local:8080")
+MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.mlflow.svc.cluster.local:5000")
+mlflow.set_tracking_uri(MLFLOW_URI)
 
 
 def load_reference_data():
@@ -60,10 +62,15 @@ def run_drift_detection():
         f"drift-reports/drift_report_{timestamp}.html"
     )
 
-    # Trigger retraining if drift detected
+    # Log to MLflow for tracking and Prometheus alerting
+    with mlflow.start_run(run_name="drift-detection"):
+        mlflow.log_metric("drift_detected", int(drift_detected))
+        mlflow.log_metric("drift_share", drift_score)
+        mlflow.set_tag("component", "drift-detection")
+
+    # Trigger retraining if drift exceeded threshold
     if drift_score > DRIFT_THRESHOLD:
-        print(
-            f"Drift score {drift_score} exceeded threshold {DRIFT_THRESHOLD}")
+        print(f"Drift score {drift_score} exceeded threshold {DRIFT_THRESHOLD}")
         trigger_retraining()
 
 

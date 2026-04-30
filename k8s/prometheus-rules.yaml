@@ -1,0 +1,55 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ml-model-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: ml-model-alerts
+      rules:
+        - alert: HighPredictionLatency
+          expr: histogram_quantile(0.99, rate(ml_prediction_latency_seconds_bucket[5m])) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High prediction latency"
+            description: "p99 latency above 2s for 5 minutes"
+
+        - alert: LowPredictionConfidence
+          expr: avg(ml_prediction_confidence_score) < 0.7
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Model confidence dropping"
+            description: "Average confidence below 70% for 10 minutes"
+
+        - alert: HighDriftScore
+          expr: ml_feature_drift_score > 0.2
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Feature drift detected"
+            description: "Drift score exceeded 0.2 threshold"
+
+        - alert: ModelRequestRateZero
+          expr: rate(ml_model_requests_total[5m]) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Inference service receiving zero requests"
+            description: "No traffic for 5 minutes — service may be down"
+
+        - alert: InferenceServiceDown
+          expr: up{job="inference-service"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Inference service is down"
+            description: "Prometheus cannot scrape the inference service"

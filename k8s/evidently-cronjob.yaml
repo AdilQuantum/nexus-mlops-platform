@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-detection-script
+  namespace: default
+data:
+  detector.py: |
+    import pandas as pd
+    import numpy as np
+    from evidently.report import Report
+    from evidently.metric_preset import DataDriftPreset
+    import mlflow
+    import os
+    import requests
+    from datetime import datetime
+
+    DRIFT_THRESHOLD = float(os.getenv("DRIFT_THRESHOLD", "0.2"))
+    AIRFLOW_URL = os.getenv("AIRFLOW_URL", "http://airflow-webserver.airflow.svc.cluster.local:8080")
+    MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow.mlflow.svc.cluster.local:5000")
+    mlflow.set_tracking_uri(MLFLOW_URI)
+
+    def load_reference_data():
+        np.random.seed(42)
+        return pd.DataFrame({
+            "transaction_amount": np.random.exponential(100, 1000),
+            "transaction_hour": np.random.randint(0, 24, 1000),
+            "account_age_days": np.random.randint(1, 3650, 1000),
+            "num_transactions_today": np.random.randint(1, 50, 1000),
+            "distance_from_home": np.random.exponential(50, 1000)
+        })
+
+    def load_current_data():
+        np.random.seed(int(datetime.now().timestamp()) % 10000)
+        return pd.DataFrame({
+            "transaction_amount": np.random.exponential(150, 500),
+            "transaction_hour": np.random.randint(0, 24, 500),
+            "account_age_days": np.random.randint(1, 3650, 500),
+            "num_transactions_today": np.random.randint(1, 50, 500),
+            "distance_from_home": np.random.exponential(80, 500)
+        })
+
+    def run_drift_detection():
+        reference = load_reference_data()
+        current = load_current_data()
+
+        report = Report(metrics=[DataDriftPreset()])
+        report.run(reference_data=reference, current_data=current)
+
+        result = report.as_dict()
+        drift_detected = result["metrics"][0]["result"]["dataset_drift"]
+        drift_score = result["metrics"][0]["result"]["share_of_drifted_columns"]
+
+        print(f"Drift detected: {drift_detected} | Score: {drift_score:.3f}")
+
+        with mlflow.start_run(run_name="drift-detection"):
+            mlflow.log_metric("drift_detected", int(drift_detected))
+            mlflow.log_metric("drift_share", drift_score)
+            mlflow.set_tag("component", "drift-detection")
+
+        if drift_score > DRIFT_THRESHOLD:
+            print(f"Threshold exceeded ({drift_score:.3f} > {DRIFT_THRESHOLD}). Triggering retrain.")
+            try:
+                r = requests.post(
+                    f"{AIRFLOW_URL}/api/v1/dags/retrain_model/dagRuns",
+                    json={"conf": {"triggered_by": "drift_detection"}},
+                    auth=("airflow", "airflow"),
+                    timeout=10
+                )
+                print(f"Airflow trigger: {r.status_code}")
+            except Exception as e:
+                print(f"Airflow not reachable: {e}")
+
+    if __name__ == "__main__":
+        run_drift_detection()
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-detection
+  namespace: default
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: drift-detection
+              image: python:3.11-slim
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  pip install evidently mlflow scikit-learn pandas numpy requests -q &&
+                  python /scripts/detector.py
+              env:
+                - name: MLFLOW_TRACKING_URI
+                  value: http://mlflow.mlflow.svc.cluster.local:5000
+                - name: DRIFT_THRESHOLD
+                  value: "0.2"
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+          volumes:
+            - name: script
+              configMap:
+                name: drift-detection-script
+          restartPolicy: OnFailure
