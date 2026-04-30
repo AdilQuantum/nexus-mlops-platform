@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inference
-          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:latest
+          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:02f8948eb644e6593a1a2de7b0023455384634f5
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
