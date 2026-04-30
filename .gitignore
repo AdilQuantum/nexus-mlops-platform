@@ -5,3 +5,4 @@
 *.tfvars
 !example.tfvars
 *.exe
+CLAUDE.md

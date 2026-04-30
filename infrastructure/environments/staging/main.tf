@@ -21,6 +21,7 @@ module "iam" {
   source       = "../../modules/iam"
   project_name = var.project_name
   environment  = var.environment
+  github_repo  = "AdilQuantum/nexus-mlops-platform"
 }
 
 module "security_groups" {
