@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import mlflow.sklearn
+import mlflow
+import mlflow.artifacts
 import numpy as np
+import pickle
 import time
 import os
 from prometheus_client import (
@@ -27,8 +29,8 @@ REQUEST_COUNTER = Counter(
     ["status"]
 )
 
-# Load model from MLflow
 MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+MLFLOW_RUN_ID = os.getenv("MLFLOW_RUN_ID")
 mlflow.set_tracking_uri(MLFLOW_URI)
 
 model = None
@@ -36,17 +38,18 @@ model = None
 
 def load_model():
     global model
-    model = mlflow.sklearn.load_model(
-        "models:/fraud-detection-model/Production"
+    if not MLFLOW_RUN_ID:
+        raise RuntimeError("MLFLOW_RUN_ID env var is required")
+    local_path = mlflow.artifacts.download_artifacts(
+        run_id=MLFLOW_RUN_ID,
+        artifact_path="model.pkl"
     )
+    with open(local_path, "rb") as f:
+        model = pickle.load(f)
 
 
 class PredictionRequest(BaseModel):
-    transaction_amount: float
-    transaction_hour: int
-    account_age_days: int
-    num_transactions_today: int
-    distance_from_home: float
+    features: list[float]
 
 
 class PredictionResponse(BaseModel):
@@ -81,16 +84,10 @@ def predict(request: PredictionRequest):
     start = time.time()
 
     try:
-        features = np.array([[
-            request.transaction_amount,
-            request.transaction_hour,
-            request.account_age_days,
-            request.num_transactions_today,
-            request.distance_from_home
-        ]])
+        features = np.array([request.features])
 
         prediction = model.predict(features)[0]
-        confidence = max(model.predict_proba(features)[0])
+        confidence = float(max(model.predict_proba(features)[0]))
 
         latency = time.time() - start
         PREDICTION_LATENCY.observe(latency)
@@ -99,7 +96,7 @@ def predict(request: PredictionRequest):
 
         return PredictionResponse(
             prediction=int(prediction),
-            confidence=float(confidence),
+            confidence=confidence,
             model_version="1.0.0"
         )
 
