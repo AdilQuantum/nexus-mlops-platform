@@ -3,19 +3,6 @@ kind: Namespace
 metadata:
   name: mlflow
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mlflow-pvc
-  namespace: mlflow
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: gp2
-  resources:
-    requests:
-      storage: 5Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -39,7 +26,7 @@ spec:
             - server
             - --host=0.0.0.0
             - --port=5000
-            - --backend-store-uri=sqlite:////mlflow/mlflow.db
+            - --backend-store-uri=sqlite:///mlflow.db
             - --artifacts-destination=/mlflow/artifacts
             - --default-artifact-root=mlflow-artifacts:/
             - --serve-artifacts
@@ -56,8 +43,7 @@ spec:
             periodSeconds: 5
       volumes:
         - name: mlflow-storage
-          persistentVolumeClaim:
-            claimName: mlflow-pvc
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
