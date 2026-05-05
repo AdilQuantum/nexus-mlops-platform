@@ -119,7 +119,7 @@ with DAG(
     "retrain_model",
     default_args=default_args,
     description="Automated retraining triggered by drift detection",
-    schedule_interval="@daily",
+    schedule="@daily",
     start_date=datetime(2026, 1, 1),
     catchup=False,
     tags=["mlops", "retraining"],
