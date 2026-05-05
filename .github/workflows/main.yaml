@@ -128,10 +128,9 @@ jobs:
         run: |
           ECR_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
           sed -i "s|image: .*nexus-mlops-inference.*|image: ${ECR_IMAGE}|g" \
-            k8s/inference-deployment.yaml \
             gitops/rollouts/inference-canary.yaml
           git config user.email "ci@nexus-mlops.com"
           git config user.name "GitHub Actions"
-          git add k8s/inference-deployment.yaml gitops/rollouts/inference-canary.yaml
+          git add gitops/rollouts/inference-canary.yaml
           git commit -m "ci: update inference image to ${{ github.sha }}" || echo "No changes to commit"
           git push
