@@ -15,17 +15,15 @@ spec:
     spec:
       containers:
         - name: inference
-          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:d8445249d8485f5962b47640944ecd21cc93fafd
+          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:d844524f90e9bd79d67de92f2dad0d001a1c7f7d
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
-          command: ["uvicorn"]
-          args: ["app:app", "--host", "0.0.0.0", "--port", "8000"]
           env:
             - name: MLFLOW_TRACKING_URI
               value: http://mlflow.mlflow.svc.cluster.local:5000
             - name: MLFLOW_RUN_ID
-              value: "5a2fec6ad0f84939b3cc1a630d0aec3a"
+              value: "eb39ea731f1f4e45a8e9185c229a402d"
           resources:
             requests:
               memory: "256Mi"
@@ -35,7 +33,7 @@ spec:
               cpu: "500m"
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: 8000
             initialDelaySeconds: 20
             periodSeconds: 10
@@ -44,7 +42,7 @@ spec:
             httpGet:
               path: /health
               port: 8000
-            initialDelaySeconds: 60
+            initialDelaySeconds: 30
             periodSeconds: 15
             failureThreshold: 3
   strategy:
