@@ -48,11 +48,12 @@ export default function () {
 }
 
 export function handleSummary(data) {
+  const errorRate = data.metrics.errors ? data.metrics.errors.values.rate : 0;
   return {
     stdout: `
 === Nexus MLOps Load Test Results ===
 Requests:     ${data.metrics.http_reqs.values.count}
-Error rate:   ${(data.metrics.errors.values.rate * 100).toFixed(2)}%
+Error rate:   ${(errorRate * 100).toFixed(2)}%
 p95 latency:  ${data.metrics.http_req_duration.values['p(95)'].toFixed(0)}ms
 p99 latency:  ${data.metrics.http_req_duration.values['p(99)'].toFixed(0)}ms
 Throughput:   ${data.metrics.http_reqs.values.rate.toFixed(1)} req/s
