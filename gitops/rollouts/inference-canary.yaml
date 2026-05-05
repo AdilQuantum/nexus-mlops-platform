@@ -4,7 +4,7 @@ metadata:
   name: inference-service
   namespace: default
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: inference-service
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inference
-          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:d844524f90e9bd79d67de92f2dad0d001a1c7f7d
+          image: 352126234584.dkr.ecr.ap-south-1.amazonaws.com/nexus-mlops-inference:d8445249d8485f5962b47640944ecd21cc93fafd
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
