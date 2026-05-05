@@ -14,4 +14,4 @@ spec:
       prometheus:
         address: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
         query: |
-          kube_pod_container_status_ready{namespace="default",container="inference"}
+          sum(kube_pod_container_status_ready{namespace="default",container="inference"})
