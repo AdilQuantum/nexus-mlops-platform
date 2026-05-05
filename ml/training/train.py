@@ -38,7 +38,8 @@ def train():
         params = {
             "n_estimators": 100,
             "max_depth": 6,
-            "random_state": 42
+            "random_state": 42,
+            "class_weight": "balanced"
         }
 
         model = RandomForestClassifier(**params)
