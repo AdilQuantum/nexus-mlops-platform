@@ -20,16 +20,26 @@ def check_drift(**context):
     mlflow.set_tracking_uri(MLFLOW_URI)
     client = mlflow.tracking.MlflowClient()
 
-    runs = client.search_runs(
-        experiment_ids=["0"],
-        filter_string="tags.component = 'drift-detection'",
-        order_by=["start_time DESC"],
-        max_results=1
-    )
+    try:
+        experiments = client.search_experiments()
+        experiment_ids = [e.experiment_id for e in experiments]
+        if not experiment_ids:
+            print("No experiments found — proceeding to retrain")
+            return "retrain_model"
+
+        runs = client.search_runs(
+            experiment_ids=experiment_ids,
+            filter_string="tags.component = 'drift-detection'",
+            order_by=["start_time DESC"],
+            max_results=1
+        )
+    except Exception as e:
+        print(f"MLflow unavailable: {e} — proceeding to retrain")
+        return "retrain_model"
 
     if not runs:
-        print("No drift detection runs found — skipping retrain")
-        return "skip_retraining"
+        print("No drift detection runs found — proceeding to retrain")
+        return "retrain_model"
 
     drift_score = runs[0].data.metrics.get("drift_share", 0)
     print(f"Latest drift score: {drift_score:.3f}")
@@ -66,7 +76,7 @@ def retrain(**context):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
 
     with mlflow.start_run(run_name="airflow-retrain") as run:
-        model = RandomForestClassifier(n_estimators=100, max_depth=6)
+        model = RandomForestClassifier(n_estimators=100, max_depth=6, class_weight="balanced")
         model.fit(X_train, y_train)
 
         f1 = f1_score(y_test, model.predict(X_test))
