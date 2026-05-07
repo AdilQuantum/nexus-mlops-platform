@@ -446,7 +446,6 @@ docker     >= 24.x   (buildx enabled for linux/amd64)
 ## What's Next
 
 - [ ] Horizontal Pod Autoscaler on inference — CPU + `ml_model_requests_total` custom metric
-- [ ] Cosign image signing in CI — attest SHA → ECR before GitOps commit
 - [ ] Grafana Loki — log aggregation across inference, drift, and Airflow pods
 - [ ] k6 SLO gate in CI — P95 < 200ms blocks merge, not just reports
 - [ ] Kafka feature stream → online feature store → real live distribution for Evidently
