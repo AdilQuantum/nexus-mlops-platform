@@ -1,4 +1,3 @@
-output "github_actions_role_arn" {
-  value       = module.iam.github_actions_role_arn
-  description = "Add this to GitHub Secrets as AWS_ROLE_ARN"
-}
+# GitHub Actions role ARN is now in infrastructure/bootstrap/
+# Run: terraform output github_actions_role_arn
+# from that directory to get the value for GitHub Secrets.
