@@ -6,3 +6,17 @@
 !example.tfvars
 *.exe
 CLAUDE.md
+
+# Model artifacts
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+
+# Python
+.coverage
+*.pyc
+__pycache__/
+*.pyo
+.pytest_cache/
